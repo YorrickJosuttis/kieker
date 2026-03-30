@@ -41,6 +41,9 @@ dependencies {
 	implementation 'org.apache.xmlgraphics:batik-all:1.17' // Complete Batik for PlantUML PDF support
 	implementation 'org.apache.xmlgraphics:fop:2.9'
 
+	// j4py for kieker-python demo
+	implementation 'net.sf.py4j:py4j:0.10.9.9'
+
 	// Some dependencies for the HTTP connector of the KDB
 	api fileTree(dir: rootProject.file('kieker-examples/JavaEEServletContainerExample/jetty/lib'), include: 'jetty-*.jar')
 

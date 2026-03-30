@@ -26,10 +26,13 @@ import kieker.analysis.architecture.trace.InvalidEventRecordTraceCounter;
 import kieker.analysis.architecture.trace.ValidEventRecordTraceCounter;
 import kieker.common.configuration.Configuration;
 import kieker.common.exception.ConfigurationException;
+import kieker.common.util.filesystem.FSUtil;
 import kieker.model.repository.SystemModelRepository;
 import kieker.tools.common.AbstractService;
 import kieker.tools.common.GraphicsEngineType;
+import kieker.tools.common.ParameterEvaluationUtils;
 import kieker.tools.common.TraceAnalysisParameters;
+import py4j.GatewayServer;
 
 /**
  * This is the main class to start the Kieker TraceAnalysisTool - the model
@@ -67,51 +70,27 @@ public class TraceAnalysisToolMain
 	 *             arguments are ignored
 	 */
 	public static void main(final String[] args) {
-		final TraceAnalysisToolMain tool = new TraceAnalysisToolMain();
-		final int result = tool.run("Trace Analysis Tool", "trace-analysis", args, new TraceAnalysisParameters());
-
-		if (tool.settings.isPrintSystemModel()) {
-			final Path systemModelPath;
-			try {
-				systemModelPath = Paths.get(tool.settings.getOutputDir().getCanonicalPath(), "system-entities.html");
-
-				try {
-					tool.getSystemRepository().saveSystemToHTMLFile(systemModelPath);
-					if (tool.teetimeConfiguration.getTraceReconstructionStage() != null) {
-						tool.teetimeConfiguration.getTraceReconstructionStage().printStatusMessage();
-					}
-					final ValidEventRecordTraceCounter validTraceCounter = tool.teetimeConfiguration
-							.getValidEventRecordTraceCounter();
-					final InvalidEventRecordTraceCounter invalidTraceCounter = tool.teetimeConfiguration
-							.getInvalidEventRecordTraceCounter();
-					if ((validTraceCounter != null) && tool.logger.isDebugEnabled()) {
-						tool.logger.debug("");
-						tool.logger.debug("#");
-						tool.logger.debug("# Plugin: {}", validTraceCounter.getClass().getName());
-
-						final int total = validTraceCounter.getTotalCount() + invalidTraceCounter.getTotalCount();
-						tool.logger.debug("Trace processing summary: {} total; {} succeeded; {} failed.",
-								total, validTraceCounter.getSuccessCount(), invalidTraceCounter.getErrorCount());
-					}
-					if (tool.teetimeConfiguration.getTraceEventRecords2ExecutionAndMessageTraceStage() != null) {
-						tool.teetimeConfiguration.getTraceEventRecords2ExecutionAndMessageTraceStage()
-								.printStatusMessage();
-					}
-				} catch (final IOException e) {
-					if (tool.logger.isErrorEnabled()) {
-						tool.logger.error("Cannot save system model in {}: {}", systemModelPath.toString(),
-								e.getLocalizedMessage());
-					}
-				}
-			} catch (final IOException e1) {
-				if (tool.logger.isErrorEnabled()) {
-					tool.logger.error("Cannot compose path: {}", e1.getLocalizedMessage());
-				}
-			}
-
+		int port = 25333;
+		if (args.length > 0) {
+			port = Integer.parseInt(args[0]);
 		}
-		System.exit(result);
 
+		TraceAnalysisToolAPI api = new TraceAnalysisToolAPI();
+		GatewayServer server = new GatewayServer(api, port);
+		server.start();
+		System.out.println("TraceAnalysisTool API is ready and listening on port " + port);
+	}
+
+	protected AbstractTraceAnalysisConfiguration getTraceAnalysisConfiguration() {
+		return this.teetimeConfiguration;
+	}
+
+	protected org.slf4j.Logger getLogger() {
+		return this.logger;
+	}
+
+	protected TraceAnalysisParameters getSettings() {
+		return this.settings;
 	}
 
 	protected SystemModelRepository getSystemRepository() {
@@ -148,11 +127,60 @@ public class TraceAnalysisToolMain
 
 	@Override
 	protected boolean checkParameters(final JCommander commander) throws ConfigurationException {
-		for (final File inputFile : this.settings.getInputDirs()) {
-			if (!inputFile.isDirectory()) {
-				return false;
+		return this.checkInputDirs(commander)
+				&& ParameterEvaluationUtils.checkDirectory(this.settings.getOutputDir(), "Output", commander);
+	}
+
+	/**
+	 * Returns if the specified input directories {@link #inputDirs} exist and that
+	 * each one is a monitoring log. If
+	 * this is not the case for one of the directories, an error message is printed
+	 * to stderr.
+	 *
+	 * @return true if {@link #inputDirs} exist and are Kieker directories; false
+	 *         otherwise
+	 */
+	private boolean checkInputDirs(final JCommander commander) {
+		if (this.settings.getInputDirs() == null) {
+			this.logger.error("No input directories specified.");
+			commander.usage();
+			return false;
+		}
+		for (final File inputDir : this.settings.getInputDirs()) {
+			try {
+				if (!inputDir.exists()) {
+					this.logger.error("The specified input directory '{}' does not exist", inputDir.getCanonicalPath());
+					return false;
+				}
+				if (!inputDir.isDirectory() && !inputDir.getAbsolutePath().endsWith(FSUtil.ZIP_FILE_EXTENSION)) {
+					this.logger.error("The specified input directory '{}' is neither a directory nor a zip file",
+							inputDir.getCanonicalPath());
+					return false;
+				}
+				// check whether inputDirFile contains a (kieker|tpmon).map file; the latter for
+				// legacy reasons
+				if (inputDir.isDirectory()) { // only check for dirs
+					final File[] mapFiles = {
+							new File(inputDir.getAbsolutePath() + File.separatorChar + FSUtil.MAP_FILENAME),
+							new File(inputDir.getAbsolutePath() + File.separatorChar + FSUtil.LEGACY_MAP_FILENAME), };
+					boolean mapFileExists = false;
+					for (final File potentialMapFile : mapFiles) {
+						if (potentialMapFile.isFile()) {
+							mapFileExists = true;
+							break;
+						}
+					}
+					if (!mapFileExists) {
+						this.logger.error("The specified input directory '{}' is not a kieker log directory",
+								inputDir.getCanonicalPath());
+						return false;
+					}
+				}
+			} catch (final IOException e) { // thrown by File.getCanonicalPath()
+				this.logger.error("Error resolving name of input directory: '{}'", inputDir);
 			}
 		}
+
 		return true;
 	}
 

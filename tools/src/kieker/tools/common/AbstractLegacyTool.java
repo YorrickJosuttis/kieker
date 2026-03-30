@@ -17,6 +17,7 @@ package kieker.tools.common;
 
 import java.lang.invoke.WrongMethodTypeException;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,9 @@ public abstract class AbstractLegacyTool<T extends Object> {
 	public static final int USAGE_EXIT_CODE = 4;
 
 	/** logger for all tools. */
-	protected final Logger logger = LoggerFactory.getLogger(this.getClass().getSimpleName()); // NOPMD logging must not be static, confuses user
+	protected final Logger logger = LoggerFactory.getLogger(this.getClass().getSimpleName()); // NOPMD logging must not
+																								// be static, confuses
+																								// user
 
 	/** true if help should be displayed. */
 	protected boolean help = false; // NOPMD this is set to false for documentation purposes
@@ -68,16 +71,18 @@ public abstract class AbstractLegacyTool<T extends Object> {
 	}
 
 	/**
-	 * Configure and execute the evaluation tool utilizing an external configuration.
+	 * Configure and execute the evaluation tool utilizing an external
+	 * configuration.
 	 *
 	 * @param title
-	 *            start up label for debug messages
+	 *                      start up label for debug messages
 	 * @param label
-	 *            label used during execution to indicate the running service
+	 *                      label used during execution to indicate the running
+	 *                      service
 	 * @param args
-	 *            arguments are ignored
+	 *                      arguments are ignored
 	 * @param configuration
-	 *            configuration object
+	 *                      configuration object
 	 *
 	 * @return returns exit code
 	 */
@@ -120,13 +125,14 @@ public abstract class AbstractLegacyTool<T extends Object> {
 	 * Execute the core part of a tool or service.
 	 *
 	 * @param commander
-	 *            JCommander instance used to display usage information in case of errors
+	 *                  JCommander instance used to display usage information in
+	 *                  case of errors
 	 * @param label
-	 *            label used during execution to indicate the running service
+	 *                  label used during execution to indicate the running service
 	 *
 	 * @return returns exit code
 	 * @throws ConfigurationException
-	 *             on configuration errors occuring at runtime
+	 *                                on configuration errors occuring at runtime
 	 */
 	protected abstract int execute(final JCommander commander, final String label) throws ConfigurationException;
 
@@ -154,24 +160,26 @@ public abstract class AbstractLegacyTool<T extends Object> {
 	 * Check a given configuration for validity.
 	 *
 	 * @param configuration
-	 *            the configuration object with all configuration parameter. Can be null.
+	 *                      the configuration object with all configuration
+	 *                      parameter. Can be null.
 	 * @param commander
-	 *            JCommander used to generate usage information.
+	 *                      JCommander used to generate usage information.
 	 * @return true if the configuration is valid.
 	 */
 	protected abstract boolean checkConfiguration(kieker.common.configuration.Configuration configuration,
 			JCommander commander);
 
 	/**
-	 * Check all given parameters for correct directory and files path, as well as, all other values
+	 * Check all given parameters for correct directory and files path, as well as,
+	 * all other values
 	 * for fitness.
 	 *
 	 * @param commander
-	 *            the command line interface
+	 *                  the command line interface
 	 * @return true if all parameter check out, else false
 	 *
 	 * @throws ConfigurationException
-	 *             on error
+	 *                                on error
 	 */
 	protected abstract boolean checkParameters(JCommander commander) throws ConfigurationException;
 

@@ -18,6 +18,7 @@ dependencies {
 	implementation project(":tools")
 
 	implementation "com.beust:jcommander:${jcommanderVersion}"
+	implementation "net.sf.py4j:py4j:0.10.9.7"
 
 	testImplementation project(':common').sourceSets.test.output
 	testImplementation project(':analysis').sourceSets.test.output
