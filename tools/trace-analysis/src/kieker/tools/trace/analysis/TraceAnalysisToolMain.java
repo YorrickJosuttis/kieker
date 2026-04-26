@@ -17,13 +17,12 @@ package kieker.tools.trace.analysis;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import com.beust.jcommander.JCommander;
 
-import kieker.analysis.architecture.trace.InvalidEventRecordTraceCounter;
-import kieker.analysis.architecture.trace.ValidEventRecordTraceCounter;
 import kieker.common.configuration.Configuration;
 import kieker.common.exception.ConfigurationException;
 import kieker.common.util.filesystem.FSUtil;
@@ -32,6 +31,7 @@ import kieker.tools.common.AbstractService;
 import kieker.tools.common.GraphicsEngineType;
 import kieker.tools.common.ParameterEvaluationUtils;
 import kieker.tools.common.TraceAnalysisParameters;
+
 import py4j.GatewayServer;
 
 /**
@@ -75,10 +75,19 @@ public class TraceAnalysisToolMain
 			port = Integer.parseInt(args[0]);
 		}
 
-		TraceAnalysisToolAPI api = new TraceAnalysisToolAPI();
-		GatewayServer server = new GatewayServer(api, port);
+		final TraceAnalysisToolAPI api = new TraceAnalysisToolAPI();
+		final GatewayServer server = TraceAnalysisToolMain.createGatewayServer(api, port);
 		server.start();
 		System.out.println("TraceAnalysisTool API is ready and listening on port " + port);
+	}
+
+	private static GatewayServer createGatewayServer(final TraceAnalysisToolAPI api, final int port) {
+		try {
+			return new GatewayServer(api, port, GatewayServer.DEFAULT_PYTHON_PORT,
+					InetAddress.getByName("0.0.0.0"), GatewayServer.defaultAddress(), 0, 0, null);
+		} catch (final UnknownHostException exception) {
+			throw new IllegalStateException("Cannot bind trace analysis gateway server", exception);
+		}
 	}
 
 	protected AbstractTraceAnalysisConfiguration getTraceAnalysisConfiguration() {
