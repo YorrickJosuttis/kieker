@@ -70,21 +70,54 @@ public class TraceAnalysisToolMain
 	 *             arguments are ignored
 	 */
 	public static void main(final String[] args) {
+		boolean serverMode = false;
 		int port = 25333;
-		if (args.length > 0) {
-			port = Integer.parseInt(args[0]);
+		String host = "0.0.0.0";
+
+		for (int i = 0; i < args.length; i++) {
+			if ("--py4j".equals(args[i])) {
+				serverMode = true;
+			} else if ("--port".equals(args[i])) {
+				if (i + 1 < args.length) {
+					try {
+						port = Integer.parseInt(args[i + 1]);
+						i++; // skip next arg since we consumed it
+					} catch (final NumberFormatException e) {
+						System.err.println("Invalid port number: " + args[i + 1]);
+						System.exit(1);
+					}
+				} else {
+					System.err.println("--port requires a port number argument");
+					System.exit(1);
+				}
+			} else if ("--host".equals(args[i])) {
+				if (i + 1 < args.length) {
+					host = args[i + 1];
+					i++; // skip next arg since we consumed it
+				} else {
+					System.err.println("--host requires a hostname/IP address argument");
+					System.exit(1);
+				}
+			}
 		}
 
 		final TraceAnalysisToolAPI api = new TraceAnalysisToolAPI();
-		final GatewayServer server = TraceAnalysisToolMain.createGatewayServer(api, port);
-		server.start();
-		System.out.println("TraceAnalysisTool API is ready and listening on port " + port);
+
+		if (serverMode) {
+			final GatewayServer server = TraceAnalysisToolMain.createGatewayServer(api, host, port);
+			server.start();
+			System.out.println("TraceAnalysisTool API is ready and listening on " + host + ":" + port);
+		} else {
+			api.run(args);
+		}
+
 	}
 
-	private static GatewayServer createGatewayServer(final TraceAnalysisToolAPI api, final int port) {
+	private static GatewayServer createGatewayServer(final TraceAnalysisToolAPI api, final String host,
+			final int port) {
 		try {
 			return new GatewayServer(api, port, GatewayServer.DEFAULT_PYTHON_PORT,
-					InetAddress.getByName("0.0.0.0"), GatewayServer.defaultAddress(), 0, 0, null);
+					InetAddress.getByName(host), GatewayServer.defaultAddress(), 0, 0, null);
 		} catch (final UnknownHostException exception) {
 			throw new IllegalStateException("Cannot bind trace analysis gateway server", exception);
 		}
